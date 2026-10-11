@@ -1,0 +1,6 @@
+{
+  "name": "Watt Steam Engine Race - CMCN 1.0",
+  "description": "Game đấu trường thời gian thực Kahoot-style: Điều khiển động cơ hơi nước Watt thi đua số mét vải dệt, phong cách Dark Industrial Steampunk qua PeerJS WebRTC.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

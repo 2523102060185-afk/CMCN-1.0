@@ -1,0 +1,2097 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Watt Steam Engine Race - CMCN 1.0</title>
+  <meta name="description" content="Game đấu trường thời gian thực Kahoot-style: Điều khiển động cơ hơi nước Watt thi đua số mét vải dệt, phong cách Dark Industrial Steampunk qua PeerJS WebRTC." />
+  <meta property="og:title" content="Watt Steam Engine Race - CMCN 1.0" />
+  <meta property="og:description" content="Game đấu trường thời gian thực Kahoot-style: Điều khiển động cơ hơi nước Watt thi đua số mét vải dệt, phong cách Dark Industrial Steampunk qua PeerJS WebRTC." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- PeerJS CDN for WebRTC P2P Multiplayer -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- QRCode.js CDN for Mobile Quick Scan -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <!-- Fonts: Clarendon / SVN-Clarendon & Vietnamese Slab Fallback -->
+  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/clarendon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brass: {
+              300: '#ffd285',
+              400: '#e5aa52',
+              500: '#c68a35',
+              600: '#9b6520',
+              700: '#6d4513',
+            },
+            copper: {
+              400: '#e07a5f',
+              500: '#c85a3a',
+              600: '#98391e',
+            },
+            steampunk: {
+              dark: '#0e1116',
+              panel: '#171c24',
+              plate: '#212834',
+              border: '#3c4758',
+              ember: '#ff5722',
+              gold: '#ffb300',
+            }
+          },
+          fontFamily: {
+            sans: ['"SVN-Clarendon"', 'Clarendon', '"Clarendon BT"', '"Roboto Slab"', 'serif'],
+            heading: ['"SVN-Clarendon"', 'Clarendon', '"Clarendon BT"', '"Roboto Slab"', 'serif'],
+            mono: ['"SVN-Clarendon"', 'Clarendon', '"Clarendon BT"', '"Roboto Slab"', 'serif'],
+            tech: ['"SVN-Clarendon"', 'Clarendon', '"Clarendon BT"', '"Roboto Slab"', 'serif'],
+            clarendon: ['"SVN-Clarendon"', 'Clarendon', '"Clarendon BT"', '"Roboto Slab"', 'serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* SVN-Clarendon Font Declarations & Fallbacks */
+    @font-face {
+      font-family: 'SVN-Clarendon';
+      src: local('SVN-Clarendon'), local('SVN Clarendon'), local('Clarendon'), local('Clarendon BT'), local('Clarendon URW'),
+           url('https://fonts.cdnfonts.com/s/14890/ClarendonRoman.woff') format('woff');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'SVN-Clarendon';
+      src: local('SVN-Clarendon Bold'), local('SVN Clarendon Bold'), local('Clarendon Bold'), local('Clarendon BT Bold'),
+           url('https://fonts.cdnfonts.com/s/14890/ClarendonBold.woff') format('woff');
+      font-weight: bold;
+      font-style: normal;
+    }
+
+    /* Apply SVN-Clarendon to all elements while preserving FontAwesome icons */
+    *, *::before, *::after {
+      font-family: 'SVN-Clarendon', 'Clarendon', 'Clarendon BT', 'Roboto Slab', serif;
+    }
+
+    i, [class*="fa-"], [class*="fa"] {
+      font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands" !important;
+    }
+
+    /* Dark Industrial Steampunk Custom Styles */
+    :root {
+      --color-brass: #c68a35;
+      --color-copper: #c85a3a;
+      --color-steam: #e2e8f0;
+    }
+
+    body {
+      background-color: #0b0e14;
+      background-image: 
+        radial-gradient(ellipse at 50% 20%, rgba(198, 138, 53, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 10% 90%, rgba(200, 90, 58, 0.06) 0%, transparent 40%),
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: #e5e7eb;
+      font-family: 'SVN-Clarendon', 'Clarendon', 'Clarendon BT', 'Roboto Slab', serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Steampunk Metallic Borders & Rivets */
+    .steampunk-box {
+      background: linear-gradient(145deg, #181e28, #11151c);
+      border: 2px solid #5a4528;
+      box-shadow: 
+        inset 0 1px 1px rgba(255, 215, 140, 0.2),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.8),
+        0 8px 24px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+
+    .steampunk-box::before,
+    .steampunk-box::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffe196 20%, #8c5b1b 70%, #2a1b05 100%);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .steampunk-box::before { top: 6px; left: 6px; }
+    .steampunk-box::after { bottom: 6px; right: 6px; }
+
+    .gold-gradient-text {
+      background: linear-gradient(180deg, #fff3c4 0%, #e0aa3e 50%, #9e6b12 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .copper-gradient-text {
+      background: linear-gradient(180deg, #ffc8b8 0%, #e07a5f 50%, #87361f 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Gear Spin Animation */
+    @keyframes gear-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes gear-spin-reverse {
+      from { transform: rotate(360deg); }
+      to { transform: rotate(0deg); }
+    }
+    .gear-slow { animation: gear-spin 20s linear infinite; }
+    .gear-medium { animation: gear-spin 8s linear infinite; }
+    .gear-fast { animation: gear-spin 2s linear infinite; }
+    .gear-reverse-fast { animation: gear-spin-reverse 2s linear infinite; }
+
+    /* Boiler Smoke & Steam Puffs */
+    @keyframes steam-puff {
+      0% { transform: translateY(0) scale(0.6); opacity: 0.9; }
+      50% { opacity: 0.6; }
+      100% { transform: translateY(-70px) scale(1.8); opacity: 0; }
+    }
+    .steam-particle {
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(240, 248, 255, 0.8) 0%, rgba(200, 215, 230, 0.4) 60%, transparent 100%);
+      filter: blur(4px);
+      animation: steam-puff 0.8s ease-out forwards;
+    }
+
+    /* Ember sparks */
+    @keyframes ember-fly {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+    }
+    .ember-particle {
+      position: absolute;
+      pointer-events: none;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ff7700;
+      box-shadow: 0 0 8px #ff3300, 0 0 12px #ffbb00;
+      animation: ember-fly 0.6s ease-out forwards;
+    }
+
+    /* Shake Screen */
+    @keyframes screen-quake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-6px, 5px) rotate(-1deg); }
+      40% { transform: translate(5px, -5px) rotate(1deg); }
+      60% { transform: translate(-5px, -3px) rotate(-0.5deg); }
+      80% { transform: translate(4px, 4px) rotate(0.5deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    .shake-animation {
+      animation: screen-quake 0.35s ease-in-out infinite;
+    }
+
+    /* Industrial Gauge Styles */
+    .gauge-dial-container {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto;
+    }
+
+    /* Golden Zone Pulse */
+    @keyframes golden-glow {
+      0%, 100% { filter: drop-shadow(0 0 12px rgba(255, 193, 7, 0.4)); }
+      50% { filter: drop-shadow(0 0 24px rgba(255, 193, 7, 0.9)); }
+    }
+    .golden-zone-active {
+      animation: golden-glow 1s ease-in-out infinite;
+    }
+
+    /* Danger Zone Pulse */
+    @keyframes danger-glow {
+      0%, 100% { filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.5)); }
+      50% { filter: drop-shadow(0 0 28px rgba(239, 68, 68, 1)); }
+    }
+    .danger-zone-active {
+      animation: danger-glow 0.4s ease-in-out infinite;
+    }
+
+    /* Tactile Steampunk Buttons */
+    .btn-valve {
+      background: linear-gradient(180deg, #d97706 0%, #b45309 40%, #78350f 100%);
+      border: 3px solid #fef08a;
+      box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.5),
+        inset 0 -4px 6px rgba(0, 0, 0, 0.6),
+        0 8px 16px rgba(0, 0, 0, 0.7);
+      transition: all 0.08s ease;
+    }
+    .btn-valve:active {
+      transform: translateY(4px) scale(0.98);
+      box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.8),
+        0 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    .btn-coal {
+      background: linear-gradient(180deg, #4b5563 0%, #374151 40%, #1f2937 100%);
+      border: 3px solid #ff7849;
+      box-shadow: 
+        inset 0 2px 4px rgba(255, 200, 150, 0.3),
+        inset 0 -4px 6px rgba(0, 0, 0, 0.8),
+        0 8px 16px rgba(0, 0, 0, 0.7);
+      transition: all 0.08s ease;
+    }
+    .btn-coal:active {
+      transform: translateY(4px) scale(0.98);
+      box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.9),
+        0 2px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #11151c; }
+    ::-webkit-scrollbar-thumb { background: #5a4528; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #c68a35; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between overflow-x-hidden">
+
+  <!-- Top Navigation Bar & Sound Control -->
+  <header class="w-full bg-[#12161f]/95 border-b border-[#443420] px-4 py-2.5 flex items-center justify-between z-40 backdrop-blur">
+    <div class="flex items-center gap-3">
+      <div class="relative w-8 h-8 flex items-center justify-center text-brass-400">
+        <i class="fa-solid fa-gear gear-slow text-2xl opacity-90"></i>
+        <i class="fa-solid fa-fire text-amber-500 absolute text-xs"></i>
+      </div>
+      <div>
+        <h1 class="text-sm md:text-base font-black tracking-wider uppercase font-heading gold-gradient-text flex items-center gap-2">
+          ĐẤU TRƯỜNG HƠI NƯỚC WATT
+          <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-600 text-amber-300 font-mono">CMCN 1.0</span>
+        </h1>
+        <p class="text-[11px] text-zinc-400 hidden sm:block">Đua mét vải dệt công nghiệp - James Watt Steam Engine Arena</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Mute/Sound Toggle -->
+      <button id="btn-sound-toggle" onclick="toggleAudio()" class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-xs font-mono flex items-center gap-1.5 text-zinc-300">
+        <i id="sound-icon" class="fa-solid fa-volume-high text-amber-400"></i>
+        <span class="hidden sm:inline">Âm thanh</span>
+      </button>
+
+      <!-- Return to Role Select (Reset View) -->
+      <button onclick="switchScreen('screen-role-select')" class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-xs font-mono text-zinc-300 hover:text-white flex items-center gap-1">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span class="hidden sm:inline">Chọn lại vai trò</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER (Single Page App Multi-view Router) -->
+  <main class="flex-1 w-full max-w-6xl mx-auto p-3 md:p-6 flex flex-col justify-center">
+
+    <!-- ========================================== -->
+    <!-- VIEW 0: ROLE SELECT SCREEN                 -->
+    <!-- ========================================== -->
+    <div id="screen-role-select" class="w-full max-w-3xl mx-auto py-6 animate-fade-in">
+      <div class="text-center mb-8">
+        <div class="inline-block px-3 py-1 bg-amber-950/70 border border-amber-600/80 rounded-full text-amber-300 text-xs tracking-widest uppercase font-mono mb-2">
+          Manchester 1785 • Cuộc Cách Mạng Công Nghiệp 1.0
+        </div>
+        <h2 class="text-3xl sm:text-5xl font-black font-heading gold-gradient-text tracking-wide drop-shadow-lg mb-2">
+          THI ĐUA DỆT VẢI HƠI NƯỚC
+        </h2>
+        <p class="text-zinc-300 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+          Vận hành cỗ máy hơi nước James Watt cải tiến nối trục máy dệt cơ học Cartwright. Giữ áp suất chuẩn trong <b>VÙNG VÀNG (50% - 75%)</b> để dệt tối đa số mét vải!
+        </p>
+      </div>
+
+      <!-- Role Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Host Card -->
+        <div onclick="initHostFlow()" class="steampunk-box rounded-xl p-6 cursor-pointer hover:border-amber-400 group transition duration-200 hover:-translate-y-1">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-mono bg-amber-900/50 border border-amber-500/50 text-amber-300 px-2.5 py-0.5 rounded">
+              Dành cho Máy chiếu / Laptop
+            </span>
+            <i class="fa-solid fa-tv text-amber-400 text-2xl group-hover:scale-110 transition"></i>
+          </div>
+          <h3 class="text-xl font-bold font-heading text-amber-200 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-crown text-amber-400"></i>
+            1. MÀN HÌNH ĐIỀU PHỐI (HOST / MC)
+          </h3>
+          <p class="text-xs text-zinc-300 mb-5 leading-relaxed">
+            Tạo phòng đấu trường, phát mã PIN 4 số + mã QR, theo dõi đường đua trực tiếp (Live Race Track) của toàn bộ người chơi và vinh danh TOP 3.
+          </p>
+          <button class="w-full py-3 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-500 text-white font-bold rounded-lg border border-amber-300 shadow-md flex items-center justify-center gap-2 tracking-wider">
+            <i class="fa-solid fa-play"></i>
+            TẠO PHÒNG ĐẤU TRƯỜNG
+          </button>
+        </div>
+
+        <!-- Player Card -->
+        <div onclick="initPlayerFlow()" class="steampunk-box rounded-xl p-6 cursor-pointer hover:border-copper-400 group transition duration-200 hover:-translate-y-1">
+          <div class="flex items-center justify-between mb-4">
+            <span class="text-xs font-mono bg-copper-900/50 border border-copper-500/50 text-copper-300 px-2.5 py-0.5 rounded">
+              Dành cho Điện thoại di động
+            </span>
+            <i class="fa-solid fa-mobile-screen-button text-copper-400 text-2xl group-hover:scale-110 transition"></i>
+          </div>
+          <h3 class="text-xl font-bold font-heading text-copper-200 mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-gauge-high text-copper-400"></i>
+            2. MÀN HÌNH THỢ DỆT (PLAYER)
+          </h3>
+          <p class="text-xs text-zinc-300 mb-5 leading-relaxed">
+            Nhập PIN tham chiến. Thao tác 2 nút cảm ứng lớn: [XẢ VAN DỆT VẢI] và [BƠM THAN TĂNG ÁP] để canh áp suất và phá kỷ lục số mét vải!
+          </p>
+          <button class="w-full py-3 bg-gradient-to-r from-red-800 via-copper-600 to-red-800 hover:from-red-700 hover:to-copper-500 text-white font-bold rounded-lg border border-copper-300 shadow-md flex items-center justify-center gap-2 tracking-wider">
+            <i class="fa-solid fa-right-to-bracket"></i>
+            THAM GIA THI ĐẤU
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Solo Practice Mode Button -->
+      <div class="text-center">
+        <button onclick="startSoloPractice()" class="px-5 py-2.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-600 text-xs font-mono text-zinc-300 hover:text-amber-300 transition flex items-center gap-2 mx-auto">
+          <i class="fa-solid fa-wrench text-amber-400"></i>
+          <span>Thử tay nghề đơn (Solo Practice 30s không cần kết nối mạng)</span>
+        </button>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: HOST - LOBBY (SẢNH CHỜ)           -->
+    <!-- ========================================== -->
+    <div id="screen-host-lobby" class="w-full hidden space-y-6">
+      <!-- Header Banner with PIN & QR -->
+      <div class="steampunk-box rounded-xl p-5 md:p-8">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+          
+          <!-- Left: Big PIN Code Display -->
+          <div class="md:col-span-8 space-y-3">
+            <div class="flex items-center gap-3">
+              <span class="px-3 py-1 rounded bg-amber-950 border border-amber-600 text-amber-400 font-mono text-xs uppercase tracking-wider">
+                <i class="fa-solid fa-signal mr-1.5 animate-pulse"></i> Máy chủ Đốc công (Host)
+              </span>
+              <span id="host-peer-status" class="text-xs font-mono text-emerald-400">
+                <i class="fa-solid fa-circle-check mr-1"></i> Sẵn sàng kết nối WebRTC
+              </span>
+            </div>
+
+            <h2 class="text-xl md:text-2xl font-bold font-heading text-zinc-200">
+              MỜI CÁC THỢ DỆT TRUY CẬP VÀ NHẬP MÃ:
+            </h2>
+
+            <!-- PIN Display Box -->
+            <div class="flex flex-wrap items-center gap-4 pt-1">
+              <div class="bg-black/80 border-2 border-amber-500 rounded-xl px-6 py-3 shadow-[0_0_25px_rgba(245,158,11,0.25)] flex items-center gap-4">
+                <span class="text-xs font-mono text-amber-500/80 uppercase">MÃ PIN:</span>
+                <span id="host-pin-display" class="text-4xl md:text-6xl font-black font-mono tracking-widest text-amber-300 drop-shadow">
+                  ----
+                </span>
+              </div>
+
+              <!-- Quick Action Buttons -->
+              <div class="flex flex-col gap-2">
+                <button onclick="copyInviteLink()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-amber-600/50 rounded-lg text-xs font-mono text-amber-300 flex items-center gap-2">
+                  <i class="fa-regular fa-copy"></i>
+                  <span>Sao chép Link mời</span>
+                </button>
+                <button onclick="openTestPlayerTab()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 rounded-lg text-xs font-mono text-zinc-300 flex items-center gap-2">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span>Mở tab Player thử nghiệm</span>
+                </button>
+              </div>
+            </div>
+
+            <p class="text-xs text-zinc-400 pt-1">
+              <i class="fa-solid fa-info-circle text-amber-400 mr-1"></i>
+              Người chơi có thể vào trực tiếp từ điện thoại cùng mạng hoặc quét mã QR bên cạnh.
+            </p>
+          </div>
+
+          <!-- Right: QR Code Container -->
+          <div class="md:col-span-4 flex flex-col items-center justify-center p-3 bg-black/60 rounded-xl border border-amber-900/60">
+            <div id="host-qrcode" class="bg-white p-2.5 rounded-lg shadow-inner mb-2 flex items-center justify-center min-h-[140px] min-w-[140px]">
+              <!-- QR Code injects here -->
+            </div>
+            <span class="text-[11px] font-mono text-amber-300/80">Quét mã QR để vào ngay</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Players List & Game Controls -->
+      <div class="steampunk-box rounded-xl p-5 md:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4 pb-3 border-b border-zinc-700">
+          <div class="flex items-center gap-3">
+            <h3 class="text-lg font-bold font-heading text-zinc-200 flex items-center gap-2">
+              <i class="fa-solid fa-users text-amber-400"></i>
+              DANH SÁCH THỢ DỆT TRONG XƯỞNG
+            </h3>
+            <span id="player-count-badge" class="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500 text-amber-300 font-mono text-xs font-bold">
+              0 người chơi
+            </span>
+          </div>
+
+          <!-- Host Lobby Tools -->
+          <div class="flex items-center gap-2">
+            <!-- Add Bot Players button for immediate demo -->
+            <button onclick="addBotPlayer()" class="px-3 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-amber-700/60 text-xs font-mono text-amber-300 flex items-center gap-1.5" title="Thêm người chơi máy để test ngay lập tức">
+              <i class="fa-solid fa-robot"></i>
+              <span>+ Thêm Thợ Máy (AI Bot)</span>
+            </button>
+            <button onclick="clearAllBots()" class="px-2 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs font-mono text-zinc-400 hover:text-red-400" title="Xóa các bot">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Players Grid -->
+        <div id="host-player-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 min-h-[120px] max-h-[260px] overflow-y-auto p-2">
+          <!-- Populated by JS -->
+          <div class="col-span-full py-8 text-center text-zinc-500 font-mono text-sm flex flex-col items-center justify-center gap-2">
+            <i class="fa-solid fa-spinner fa-spin text-2xl text-amber-600/60"></i>
+            <span>Đang chờ các thợ dệt nhập mã PIN vào xưởng...</span>
+          </div>
+        </div>
+
+        <!-- Match Duration & Start Button -->
+        <div class="mt-6 pt-4 border-t border-zinc-700 flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-mono text-zinc-400">Thời lượng trận đấu:</span>
+            <select id="select-duration" class="bg-zinc-900 border border-amber-600 text-amber-300 text-xs font-mono rounded px-3 py-1.5 focus:outline-none">
+              <option value="20">20 Giây (Thi đấu nhanh)</option>
+              <option value="30" selected>30 Giây (Tiêu chuẩn)</option>
+              <option value="45">45 Giây (Kịch tính)</option>
+              <option value="60">60 Giây (Sức bền)</option>
+            </select>
+          </div>
+
+          <button id="btn-host-start" onclick="hostStartMatch()" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-black font-black font-heading text-lg tracking-wider border-2 border-yellow-200 shadow-[0_0_20px_rgba(245,158,11,0.5)] transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3">
+            <i class="fa-solid fa-flag-checkered text-xl"></i>
+            <span>BẮT ĐẦU TRANH TÀI NGAY!</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: HOST - LIVE RACE TRACK (THI ĐẤU)   -->
+    <!-- ========================================== -->
+    <div id="screen-host-race" class="w-full hidden space-y-4">
+      <!-- Race Top Bar: Match Timer & Status -->
+      <div class="steampunk-box rounded-xl p-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-amber-950 border border-amber-500 flex items-center justify-center text-amber-400 text-xl">
+            <i class="fa-solid fa-gauge-high"></i>
+          </div>
+          <div>
+            <h2 class="text-base md:text-lg font-bold font-heading text-amber-200">
+              ĐƯỜNG ĐUA DỆT VẢI CÔNG NGHIỆP WATT
+            </h2>
+            <p class="text-xs text-zinc-400 font-mono">Bảng xếp hạng thời gian thực (Live Meters Race)</p>
+          </div>
+        </div>
+
+        <!-- Big Countdown Clock -->
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono text-zinc-400 uppercase hidden sm:inline">Thời gian còn lại:</span>
+          <div class="bg-black/90 border-2 border-amber-500 rounded-lg px-4 py-1.5 flex items-center gap-2">
+            <i class="fa-regular fa-clock text-amber-400 animate-spin text-sm"></i>
+            <span id="host-race-timer" class="text-2xl md:text-3xl font-black font-mono text-amber-300">
+              30s
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Race Tracks Container -->
+      <div class="steampunk-box rounded-xl p-4 md:p-6 min-h-[380px] max-h-[560px] overflow-y-auto">
+        <div class="flex items-center justify-between text-xs font-mono text-zinc-400 pb-2 mb-3 border-b border-zinc-700">
+          <span>THỢ DỆT & LÀN ĐUA VẢI</span>
+          <span>TIẾN ĐỘ & SỐ MÉT VẢI (m)</span>
+        </div>
+
+        <div id="host-tracks-container" class="space-y-3.5">
+          <!-- Dynamic Player Race Rows Render Here -->
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: HOST - PODIUM TOP 3 (VINH DANH)    -->
+    <!-- ========================================== -->
+    <div id="screen-host-podium" class="w-full hidden space-y-6">
+      <div class="text-center">
+        <div class="inline-block px-4 py-1 rounded-full bg-amber-950 border border-amber-500 text-amber-300 font-mono text-xs uppercase tracking-widest mb-2">
+          KẾT QUẢ CHUNG CUỘC • MANCHESTER INDUSTRIAL CHAMPION
+        </div>
+        <h2 class="text-3xl md:text-5xl font-black font-heading gold-gradient-text">
+          BỤC VINH DANH VUA DỆT VẢI 1785
+        </h2>
+      </div>
+
+      <!-- Top 3 Steampunk Podium -->
+      <div class="max-w-3xl mx-auto pt-6 pb-2">
+        <div id="podium-top3-grid" class="flex items-end justify-center gap-2 sm:gap-4 min-h-[260px]">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Full Leaderboard Table -->
+      <div class="steampunk-box rounded-xl p-4 md:p-6 max-w-4xl mx-auto">
+        <h3 class="text-base font-bold font-heading text-zinc-200 mb-3 flex items-center gap-2">
+          <i class="fa-solid fa-list-ol text-amber-400"></i>
+          BẢNG TỔNG KẾT TOÀN BỘ CÔNG NHÂN XƯỞNG
+        </h3>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead>
+              <tr class="border-b border-zinc-700 text-zinc-400">
+                <th class="py-2 px-3">Hạng</th>
+                <th class="py-2 px-3">Thợ dệt</th>
+                <th class="py-2 px-3 text-right">Tổng Vải Dệt</th>
+                <th class="py-2 px-3 text-center">Nổ Nồi Hơi</th>
+                <th class="py-2 px-3 text-right">Tốc độ TB</th>
+              </tr>
+            </thead>
+            <tbody id="podium-full-leaderboard">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Rematch / Return buttons -->
+        <div class="mt-6 pt-4 border-t border-zinc-700 flex flex-wrap items-center justify-center gap-4">
+          <button onclick="hostRematchSameRoom()" class="px-6 py-2.5 rounded-lg bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-bold font-heading text-sm shadow flex items-center gap-2">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>ĐUA LẠI TRẬN MỚI (GIỮ PHÒNG NÀY)</span>
+          </button>
+          <button onclick="initHostFlow()" class="px-5 py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-zinc-300 font-mono text-xs flex items-center gap-2">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tạo phòng PIN mới</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 4: PLAYER - JOIN / LOBBY (ĐĂNG NHẬP)  -->
+    <!-- ========================================== -->
+    <div id="screen-player-login" class="w-full max-w-md mx-auto hidden space-y-5">
+      <div class="text-center">
+        <div class="inline-block px-3 py-1 bg-copper-950/80 border border-copper-600 rounded-full text-copper-300 text-xs font-mono uppercase mb-2">
+          GIAO DIỆN THỢ MÁY DI ĐỘNG
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-black font-heading copper-gradient-text">
+          VÀO XƯỞNG TRANH TÀI
+        </h2>
+        <p class="text-xs text-zinc-400">Nhập mã PIN hiển thị trên màn hình của Đốc công</p>
+      </div>
+
+      <div class="steampunk-box rounded-xl p-5 md:p-6 space-y-4">
+        <!-- PIN Input -->
+        <div>
+          <label class="block text-xs font-mono text-zinc-300 mb-1.5 flex items-center justify-between">
+            <span>MÃ PIN 4 CHỮ SỐ:</span>
+            <span id="player-pin-hint" class="text-amber-400 text-[11px]"></span>
+          </label>
+          <input 
+            type="text" 
+            id="input-player-pin" 
+            maxlength="6"
+            placeholder="VD: 5821" 
+            onkeyup="if(event.key==='Enter') playerConnectToHost()"
+            class="w-full bg-black/80 border-2 border-amber-600/80 focus:border-amber-400 rounded-lg px-4 py-3 text-center text-3xl font-mono tracking-widest text-amber-300 placeholder-zinc-700 focus:outline-none uppercase"
+          />
+        </div>
+
+        <!-- Name Input -->
+        <div>
+          <label class="block text-xs font-mono text-zinc-300 mb-1.5">
+            TÊN THỢ DỆT CỦA BẠN:
+          </label>
+          <input 
+            type="text" 
+            id="input-player-name" 
+            maxlength="14"
+            placeholder="Nhập biệt danh..." 
+            onkeyup="if(event.key==='Enter') playerConnectToHost()"
+            class="w-full bg-zinc-900 border border-zinc-600 focus:border-amber-400 rounded-lg px-3.5 py-2.5 text-sm font-mono text-zinc-200 placeholder-zinc-600 focus:outline-none"
+          />
+        </div>
+
+        <!-- Avatar Selection -->
+        <div>
+          <label class="block text-xs font-mono text-zinc-300 mb-1.5">
+            CHỌN HÌNH TƯỢNG CƠ KHÍ:
+          </label>
+          <div class="grid grid-cols-4 gap-2" id="avatar-selector">
+            <button type="button" onclick="selectAvatar('⚙️')" class="avatar-opt p-2 rounded-lg bg-zinc-800 border-2 border-amber-500 text-2xl flex items-center justify-center">⚙️</button>
+            <button type="button" onclick="selectAvatar('🔥')" class="avatar-opt p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-2xl flex items-center justify-center">🔥</button>
+            <button type="button" onclick="selectAvatar('🎩')" class="avatar-opt p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-2xl flex items-center justify-center">🎩</button>
+            <button type="button" onclick="selectAvatar('🧵')" class="avatar-opt p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-2xl flex items-center justify-center">🧵</button>
+          </div>
+        </div>
+
+        <!-- Connect Button -->
+        <button 
+          id="btn-player-connect" 
+          onclick="playerConnectToHost()" 
+          class="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-black font-black font-heading text-base tracking-wider border border-yellow-200 shadow-md transition"
+        >
+          <i class="fa-solid fa-bolt mr-1"></i>
+          KẾT NỐI VÀO PHÒNG
+        </button>
+
+        <!-- Status msg -->
+        <p id="player-login-status" class="text-center text-xs font-mono text-amber-400 min-h-[18px]"></p>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 5: PLAYER - WAITING IN LOBBY         -->
+    <!-- ========================================== -->
+    <div id="screen-player-waiting" class="w-full max-w-md mx-auto hidden space-y-6 text-center">
+      <div class="steampunk-box rounded-xl p-8 space-y-5">
+        <div class="relative w-24 h-24 mx-auto flex items-center justify-center">
+          <i class="fa-solid fa-gear gear-medium text-6xl text-amber-600/50"></i>
+          <span id="player-wait-avatar" class="text-4xl absolute">⚙️</span>
+        </div>
+
+        <div>
+          <h2 id="player-wait-name" class="text-2xl font-black font-heading text-amber-300">
+            Thợ dệt
+          </h2>
+          <span class="inline-block mt-1 px-3 py-0.5 rounded-full bg-emerald-950 border border-emerald-500 text-emerald-400 font-mono text-xs">
+            <i class="fa-solid fa-circle-check mr-1"></i> ĐÃ VÀO XƯỞNG THÀNH CÔNG
+          </span>
+        </div>
+
+        <div class="p-4 rounded-lg bg-black/60 border border-amber-900/60 text-xs text-zinc-300 leading-relaxed font-mono">
+          <p class="text-amber-400 font-bold mb-1">HÃY CHÚ Ý LÊN MÀN HÌNH CHÍNH!</p>
+          <p>Khi Đốc công (Host) bấm bắt đầu, trận đấu 30s sẽ tự động đếm ngược. Hãy chuẩn bị ngón tay sẵn sàng!</p>
+        </div>
+
+        <div class="flex items-center justify-center gap-2 text-xs font-mono text-zinc-400">
+          <i class="fa-solid fa-circle-notch fa-spin text-amber-500"></i>
+          <span>Chờ hiệu lệnh còi hơi từ Host...</span>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 6: PLAYER - ACTIVE ARENA (THI ĐẤU)   -->
+    <!-- ========================================== -->
+    <div id="screen-player-game" class="w-full max-w-lg mx-auto hidden space-y-3">
+      
+      <!-- Top HUD: Live Score & Timer -->
+      <div class="steampunk-box rounded-xl px-4 py-2.5 flex items-center justify-between">
+        <!-- Live Rank / Name -->
+        <div class="flex items-center gap-2">
+          <span id="hud-player-avatar" class="text-2xl">⚙️</span>
+          <div>
+            <div id="hud-player-name" class="text-xs font-bold text-zinc-200 font-heading truncate max-w-[100px]">
+              Thợ Dệt
+            </div>
+            <div id="hud-player-rank" class="text-[11px] font-mono text-amber-400">
+              Hạng: #1
+            </div>
+          </div>
+        </div>
+
+        <!-- Big Fabric Meters Counter -->
+        <div class="text-right">
+          <span class="text-[10px] font-mono text-zinc-400 uppercase">SỐ MÉT VẢI:</span>
+          <div class="text-2xl md:text-3xl font-black font-mono text-emerald-400 flex items-baseline justify-end gap-1">
+            <span id="hud-player-meters">0.0</span>
+            <span class="text-xs text-emerald-600 font-bold">m</span>
+          </div>
+        </div>
+
+        <!-- Timer -->
+        <div class="bg-black/90 border border-amber-500/80 rounded px-2.5 py-1 text-center min-w-[54px]">
+          <span class="text-[9px] font-mono text-zinc-400 block -mb-1">GIÂY</span>
+          <span id="hud-player-timer" class="text-lg font-black font-mono text-amber-300">
+            30
+          </span>
+        </div>
+      </div>
+
+      <!-- STEAM PRESSURE GAUGE (3D Steampunk Industrial Dial) -->
+      <div id="gauge-container-card" class="steampunk-box rounded-2xl p-4 text-center relative overflow-hidden transition duration-150">
+        
+        <!-- Overheat Warning Banner (Hidden by default) -->
+        <div id="gauge-warning-banner" class="hidden absolute top-2 left-0 right-0 z-20 py-1 bg-red-600/90 text-white font-mono text-xs font-black tracking-widest uppercase animate-pulse">
+          ⚠️ CẢNH BÁO: ÁP SUẤT QUÁ NHIỆT (>85%)! SẮP NỔ!
+        </div>
+
+        <!-- Penalty Frozen Overlay (When Exploded) -->
+        <div id="gauge-frozen-overlay" class="hidden absolute inset-0 z-30 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+          <div class="w-16 h-16 rounded-full bg-red-950 border-2 border-red-500 flex items-center justify-center text-3xl text-red-500 mb-2 animate-bounce">
+            <i class="fa-solid fa-burst"></i>
+          </div>
+          <h3 class="text-xl font-black font-heading text-red-500 tracking-wider mb-1">
+            💥 NỔ NỒI HƠI!
+          </h3>
+          <p class="text-xs text-red-300 font-mono mb-2">Trừ 3.0m vải! Đang đóng ngắt van an toàn...</p>
+          <div class="text-3xl font-black font-mono text-amber-400" id="frozen-countdown">
+            2.5s
+          </div>
+        </div>
+
+        <!-- SVG Pressure Gauge Dial -->
+        <div class="gauge-dial-container mt-2">
+          <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-lg">
+            <!-- Dial Background -->
+            <circle cx="100" cy="100" r="92" fill="#141820" stroke="#5a4528" stroke-width="6" />
+            <circle cx="100" cy="100" r="85" fill="#0c0e14" stroke="#2a1f11" stroke-width="2" />
+
+            <!-- Colored Arcs -->
+            <!-- 1. Low zone (0% to 40%): angle -120 to -24 -->
+            <path d="M 33.6 138.6 A 76 76 0 0 1 76.5 27.6" fill="none" stroke="#3b82f6" stroke-width="12" stroke-linecap="round" opacity="0.4" />
+            <!-- 2. Golden Safe Zone (50% to 75%): angle 0 to 60 deg (optimum) -->
+            <path id="svg-golden-arc" d="M 100 24 A 76 76 0 0 1 165.8 62" fill="none" stroke="#eab308" stroke-width="16" stroke-linecap="round" />
+            <!-- 3. Warning zone (75% to 85%): angle 60 to 84 deg -->
+            <path d="M 165.8 62 A 76 76 0 0 1 175.5 92" fill="none" stroke="#f97316" stroke-width="12" stroke-linecap="round" opacity="0.6" />
+            <!-- 4. Danger Red Explosion Zone (85% to 100%): angle 84 to 120 deg -->
+            <path id="svg-danger-arc" d="M 175.5 92 A 76 76 0 0 1 166.4 138.6" fill="none" stroke="#ef4444" stroke-width="15" stroke-linecap="round" />
+
+            <!-- Tick marks & labels -->
+            <text x="35" y="155" fill="#60a5fa" font-size="9" font-family="'SVN-Clarendon', 'Clarendon', 'Roboto Slab', serif" text-anchor="middle">0</text>
+            <text x="100" y="42" fill="#facc15" font-size="10" font-family="'SVN-Clarendon', 'Clarendon', 'Roboto Slab', serif" font-weight="bold" text-anchor="middle">50% VÀNG</text>
+            <text x="165" y="155" fill="#f87171" font-size="9" font-family="'SVN-Clarendon', 'Clarendon', 'Roboto Slab', serif" text-anchor="middle">100</text>
+
+            <!-- Center Cap & Pivot -->
+            <circle cx="100" cy="100" r="14" fill="#c68a35" stroke="#ffe196" stroke-width="2" />
+            <circle cx="100" cy="100" r="5" fill="#2d1c06" />
+
+            <!-- The Needle (Rotates around 100, 100) -->
+            <!-- Angle range: -120deg (at 0%) to +120deg (at 100%) -->
+            <g id="svg-needle-group" transform="rotate(-120 100 100)" class="transition-transform duration-75">
+              <!-- Needle Pointer -->
+              <polygon points="97,100 103,100 101,28 100,22 99,28" fill="#ef4444" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.8))" />
+              <!-- Counterweight -->
+              <polygon points="98,100 102,100 103,115 97,115" fill="#78350f" />
+            </g>
+          </svg>
+        </div>
+
+        <!-- Digital PSI & Zone Description -->
+        <div class="mt-1 flex items-center justify-around font-mono">
+          <div>
+            <span class="text-[10px] text-zinc-400 block">ÁP SUẤT NỒI HƠI</span>
+            <span id="gauge-pressure-num" class="text-2xl font-black text-amber-300">0.0%</span>
+          </div>
+          <div id="gauge-zone-badge" class="px-3 py-1 rounded-full text-xs font-bold border border-zinc-600 bg-zinc-900 text-zinc-400">
+            Đang chờ khởi động
+          </div>
+        </div>
+
+        <!-- Golden Zone Guide helper -->
+        <p class="text-[11px] text-amber-400/90 font-mono mt-1">
+          ★ VÙNG VÀNG: <b>50% - 75%</b> = Bấm Xả van được <b>+1.0m Vải</b>!
+        </p>
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- 2 TACTILE BIG ACTION BUTTONS (MOBILE FRIENDLY) -->
+      <!-- ========================================== -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+        
+        <!-- Button 1: [ XẢ VAN DỆT VẢI (+1m) ] -->
+        <button 
+          id="btn-action-valve" 
+          onclick="handleValveRelease()" 
+          class="btn-valve rounded-2xl p-5 text-white flex flex-col items-center justify-center gap-1 active:scale-95 transition relative overflow-hidden"
+        >
+          <div class="flex items-center gap-2 text-xl font-black font-heading tracking-wider">
+            <i class="fa-solid fa-wind text-yellow-200"></i>
+            <span>XẢ VAN DỆT VẢI</span>
+          </div>
+          <span class="text-xs font-mono font-bold text-yellow-200 bg-amber-950/60 px-2 py-0.5 rounded border border-yellow-400/60">
+            -10% ÁP SUẤT • +1.0m VẢI
+          </span>
+          <span class="text-[10px] text-yellow-100/70 font-mono">
+            (Chỉ có tác dụng khi kim ở Vùng Vàng 50%-75%)
+          </span>
+          <!-- Dynamic Puff FX container inside button -->
+          <div id="valve-fx-container" class="absolute inset-0 pointer-events-none"></div>
+        </button>
+
+        <!-- Button 2: [ BƠM THAN TĂNG ÁP (+15%) ] -->
+        <button 
+          id="btn-action-coal" 
+          onclick="handleCoalShovel()" 
+          class="btn-coal rounded-2xl p-5 text-white flex flex-col items-center justify-center gap-1 active:scale-95 transition relative overflow-hidden"
+        >
+          <div class="flex items-center gap-2 text-xl font-black font-heading tracking-wider">
+            <i class="fa-solid fa-fire-burner text-amber-400"></i>
+            <span>BƠM THAN TĂNG ÁP</span>
+          </div>
+          <span class="text-xs font-mono font-bold text-orange-300 bg-zinc-950/70 px-2 py-0.5 rounded border border-orange-500/60">
+            +15% ÁP SUẤT CẤP TỐC
+          </span>
+          <span class="text-[10px] text-zinc-300/80 font-mono">
+            (Bấm khi áp suất tụt quá thấp để bù nhiệt)
+          </span>
+          <!-- Ember FX container -->
+          <div id="coal-fx-container" class="absolute inset-0 pointer-events-none"></div>
+        </button>
+
+      </div>
+
+      <!-- Action Toast / Combo Streak -->
+      <div id="player-action-toast" class="h-6 text-center text-xs font-mono font-bold text-amber-300 transition-opacity">
+        <!-- Live click feedback appears here -->
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- VIEW 7: PLAYER - MATCH FINISHED SCREEN    -->
+    <!-- ========================================== -->
+    <div id="screen-player-end" class="w-full max-w-md mx-auto hidden space-y-5 text-center">
+      <div class="steampunk-box rounded-2xl p-6 space-y-4">
+        <div class="w-20 h-20 rounded-full bg-amber-950/80 border-2 border-amber-500 mx-auto flex items-center justify-center text-4xl text-amber-400">
+          <i class="fa-solid fa-award"></i>
+        </div>
+
+        <div>
+          <span class="text-xs font-mono text-zinc-400 uppercase">HẾT GIỜ TRANH TÀI!</span>
+          <h2 class="text-2xl font-black font-heading gold-gradient-text">
+            KẾT QUẢ THỢ DỆT
+          </h2>
+        </div>
+
+        <div class="bg-black/80 border border-zinc-700 rounded-xl p-4 space-y-2 font-mono">
+          <div class="flex justify-between items-center text-sm border-b border-zinc-800 pb-2">
+            <span class="text-zinc-400">Thứ hạng của bạn:</span>
+            <span id="end-player-rank" class="text-xl font-bold text-amber-300">#--</span>
+          </div>
+          <div class="flex justify-between items-center text-sm border-b border-zinc-800 pb-2">
+            <span class="text-zinc-400">Tổng mét vải dệt:</span>
+            <span id="end-player-meters" class="text-xl font-bold text-emerald-400">0.0 m</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-zinc-400">Số lần nổ nồi hơi:</span>
+            <span id="end-player-explosions" class="text-base text-red-400">0 lần</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-zinc-400 font-mono">
+          Hãy hướng mắt về màn hình Đốc công (Host) để theo dõi lễ vinh danh TOP 3!
+        </p>
+
+        <button onclick="switchScreen('screen-player-waiting')" class="w-full py-2.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-xs font-mono text-zinc-300">
+          Chờ Đốc công bắt đầu ván tiếp theo
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Steampunk Footer -->
+  <footer class="w-full py-3 px-4 border-t border-[#342817] bg-[#0c0f14] text-center text-zinc-500 text-[11px] font-mono flex flex-wrap items-center justify-between gap-2">
+    <div>
+      Động cơ hơi nước James Watt (1769) • Máy dệt Cartwright (1785) • CMCN 1.0
+    </div>
+    <div class="flex items-center gap-3">
+      <span>WebRTC via PeerJS</span>
+      <span class="text-amber-600">•</span>
+      <span>Tối ưu Mobile Touch</span>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT GAME ENGINE & WEBRTC PEERJS MULTIPLAYER LOGIC                   -->
+  <!-- ========================================================================= -->
+  <script>
+    /**
+     * @license
+     * SPDX-License-Identifier: Apache-2.0
+     * Watt Steam Engine Arena - CMCN 1.0 (Single-File Architecture)
+     */
+
+    // --- GLOBAL AUDIO SYNTHESIZER (Web Audio API) ---
+    // Pure synthesized sounds: No external mp3/wav files required! Works 100% reliably.
+    let audioCtx = null;
+    let isAudioMuted = false;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleAudio() {
+      isAudioMuted = !isAudioMuted;
+      const icon = document.getElementById('sound-icon');
+      if (isAudioMuted) {
+        icon.className = 'fa-solid fa-volume-xmark text-zinc-500';
+      } else {
+        icon.className = 'fa-solid fa-volume-high text-amber-400';
+        getAudioContext();
+        playSound('valve');
+      }
+    }
+
+    function playSound(type) {
+      if (isAudioMuted) return;
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+
+      if (type === 'valve') {
+        // High-pressure steam release whoosh (filtered white noise)
+        const bufferSize = ctx.sampleRate * 0.25;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(1400, now);
+        filter.frequency.exponentialRampToValueAtTime(400, now + 0.22);
+        filter.Q.value = 3.0;
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.24);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(now);
+      } 
+      else if (type === 'coal') {
+        // Metallic shovel scrap + deep clang
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(320, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+      else if (type === 'explosion') {
+        // Deep boiler explosion boom
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.6);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.65);
+
+        // Add noise blast
+        const bufferSize = ctx.sampleRate * 0.45;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.15));
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.4, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        noise.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        noise.start(now);
+      }
+      else if (type === 'whistle') {
+        // Steam Train / Factory Whistle (Two harmonic tones)
+        [587, 880].forEach(freq => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.7);
+        });
+      }
+      else if (type === 'victory') {
+        // Fanfare chord
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+          gain.gain.setValueAtTime(0.25, now + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.1);
+          osc.stop(now + 0.9);
+        });
+      }
+    }
+
+    // --- NAVIGATION / SCREEN ROUTER ---
+    function switchScreen(screenId) {
+      const screens = [
+        'screen-role-select',
+        'screen-host-lobby',
+        'screen-host-race',
+        'screen-host-podium',
+        'screen-player-login',
+        'screen-player-waiting',
+        'screen-player-game',
+        'screen-player-end'
+      ];
+      screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (id === screenId) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // --- GAME STATE VARIABLES ---
+    let hostPin = null;
+    let hostPeer = null;
+    let hostConnections = new Map(); // peerId -> conn
+    let hostPlayers = new Map(); // id -> { id, name, avatar, meters, pressure, isExploded, explosions, isBot }
+    let hostRaceTimer = null;
+    let hostTimeLeft = 30;
+    let hostMatchDuration = 30;
+
+    let playerPeer = null;
+    let playerConn = null;
+    let myPlayerId = 'player_' + Math.floor(Math.random() * 899999 + 100000);
+    let myPlayerName = '';
+    let myPlayerAvatar = '⚙️';
+    let isSoloPractice = false;
+
+    // Player Live In-Game State
+    let playerPressure = 20.0; // 0 to 100%
+    let playerMeters = 0.0;
+    let playerExplosions = 0;
+    let isBoilerExploded = false;
+    let explosionPenaltyTimeout = null;
+    let boilerBoilingInterval = null;
+    let playerGameTimerInterval = null;
+    let playerTimeLeft = 30;
+
+    // =========================================================================
+    // HOST CONTROLLER LOGIC
+    // =========================================================================
+
+    function initHostFlow() {
+      switchScreen('screen-host-lobby');
+      getAudioContext();
+
+      // Generate a 4-digit PIN (e.g. 1000 - 9999)
+      hostPin = String(Math.floor(1000 + Math.random() * 9000));
+      document.getElementById('host-pin-display').innerText = hostPin;
+
+      // Render QR code
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('pin', hostPin);
+      currentUrl.searchParams.set('role', 'player');
+      const inviteUrl = currentUrl.toString();
+
+      const qrContainer = document.getElementById('host-qrcode');
+      qrContainer.innerHTML = '';
+      if (window.QRCode) {
+        new QRCode(qrContainer, {
+          text: inviteUrl,
+          width: 140,
+          height: 140,
+          colorDark: "#111827",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+
+      // Initialize PeerJS for Host
+      const peerId = 'watt10-' + hostPin;
+      if (hostPeer) {
+        hostPeer.destroy();
+      }
+
+      // Local BroadcastChannel for instant local testing tabs
+      if (window.BroadcastChannel) {
+        if (window.localHostBroadcast) window.localHostBroadcast.close();
+        window.localHostBroadcast = new BroadcastChannel('watt10_room_' + hostPin);
+        window.localHostBroadcast.onmessage = (event) => {
+          if (event.data) handleHostIncomingData(event.data, null);
+        };
+      }
+
+      const statusEl = document.getElementById('host-peer-status');
+      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang khởi tạo máy chủ WebRTC...';
+
+      try {
+        hostPeer = new Peer(peerId, {
+          debug: 1
+        });
+
+        hostPeer.on('open', (id) => {
+          statusEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Sẵn sàng kết nối WebRTC (Peer ID: ' + id + ')';
+        });
+
+        hostPeer.on('connection', (conn) => {
+          handleIncomingPlayerConnection(conn);
+        });
+
+        hostPeer.on('error', (err) => {
+          console.warn('Host PeerJS Error:', err);
+          if (err.type === 'unavailable-id') {
+            // Regenerate PIN if collision occurs
+            initHostFlow();
+          } else {
+            statusEl.innerHTML = '<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Dự phòng: Chế độ mạng cục bộ</span>';
+          }
+        });
+      } catch (e) {
+        console.error('PeerJS init failed:', e);
+      }
+
+      // Reset players
+      hostPlayers.clear();
+      hostConnections.clear();
+      renderHostLobbyPlayers();
+    }
+
+    function handleHostIncomingData(data, conn) {
+      if (!data || !data.type) return;
+
+      if (data.type === 'JOIN') {
+        const pId = data.playerId;
+        const existing = hostPlayers.get(pId);
+        if (!existing) {
+          hostPlayers.set(pId, {
+            id: pId,
+            name: data.name || 'Thợ dệt',
+            avatar: data.avatar || '⚙️',
+            meters: 0.0,
+            pressure: 20.0,
+            isExploded: false,
+            explosions: 0,
+            isBot: false,
+            conn: conn
+          });
+          if (conn) hostConnections.set(pId, conn);
+
+          const welcomeMsg = {
+            type: 'JOINED_OK',
+            pin: hostPin,
+            playerId: pId
+          };
+
+          if (conn) {
+            try { conn.send(welcomeMsg); } catch(e) {}
+          }
+          if (window.localHostBroadcast) {
+            try { window.localHostBroadcast.postMessage(welcomeMsg); } catch(e) {}
+          }
+
+          playSound('whistle');
+          renderHostLobbyPlayers();
+        }
+      } 
+      else if (data.type === 'ACTION_UPDATE') {
+        const p = hostPlayers.get(data.playerId);
+        if (p) {
+          p.meters = parseFloat(data.meters) || 0;
+          p.pressure = parseFloat(data.pressure) || 0;
+          p.isExploded = Boolean(data.isExploded);
+          if (data.explosions !== undefined) p.explosions = data.explosions;
+          renderLiveTracks();
+        }
+      }
+    }
+
+    function handleIncomingPlayerConnection(conn) {
+      conn.on('open', () => {
+        conn.on('data', (data) => {
+          handleHostIncomingData(data, conn);
+        });
+      });
+
+      conn.on('close', () => {
+        for (let [pId, c] of hostConnections.entries()) {
+          if (c === conn) {
+            hostConnections.delete(pId);
+            hostPlayers.delete(pId);
+            break;
+          }
+        }
+        renderHostLobbyPlayers();
+      });
+    }
+
+    function copyInviteLink() {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('pin', hostPin);
+      currentUrl.searchParams.set('role', 'player');
+      navigator.clipboard.writeText(currentUrl.toString()).then(() => {
+        alert('Đã sao chép đường link tham gia vào bộ nhớ tạm: ' + currentUrl.toString());
+      }).catch(() => {
+        prompt('Đường dẫn tham gia của bạn:', currentUrl.toString());
+      });
+    }
+
+    function openTestPlayerTab() {
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set('pin', hostPin);
+      currentUrl.searchParams.set('role', 'player');
+      window.open(currentUrl.toString(), '_blank');
+    }
+
+    // Host AI Bot simulation for instant testing!
+    const BOT_NAMES = ['Watt Bot 1', 'Arkwright AI', 'Cartwright 90', 'Lancashire Bot', 'Manchester Steam', 'Loom Master'];
+    const BOT_AVATARS = ['⚙️', '🔥', '🎩', '🧵'];
+
+    function addBotPlayer() {
+      const id = 'bot_' + Math.floor(Math.random() * 89999 + 10000);
+      const name = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)] + ' #' + (hostPlayers.size + 1);
+      const avatar = BOT_AVATARS[Math.floor(Math.random() * BOT_AVATARS.length)];
+      
+      hostPlayers.set(id, {
+        id: id,
+        name: name,
+        avatar: avatar,
+        meters: 0.0,
+        pressure: 30.0,
+        isExploded: false,
+        explosions: 0,
+        isBot: true,
+        botSkill: 0.7 + Math.random() * 0.5 // bot speed factor
+      });
+      renderHostLobbyPlayers();
+    }
+
+    function clearAllBots() {
+      for (let [id, p] of hostPlayers.entries()) {
+        if (p.isBot) hostPlayers.delete(id);
+      }
+      renderHostLobbyPlayers();
+    }
+
+    function renderHostLobbyPlayers() {
+      const listEl = document.getElementById('host-player-list');
+      const badgeEl = document.getElementById('player-count-badge');
+      const startBtn = document.getElementById('btn-host-start');
+
+      const count = hostPlayers.size;
+      badgeEl.innerText = count + ' người chơi';
+
+      if (count === 0) {
+        listEl.innerHTML = `
+          <div class="col-span-full py-8 text-center text-zinc-500 font-mono text-sm flex flex-col items-center justify-center gap-2">
+            <i class="fa-solid fa-spinner fa-spin text-2xl text-amber-600/60"></i>
+            <span>Đang chờ thợ dệt nhập PIN <b>${hostPin}</b> hoặc bấm "+ Thêm Thợ Máy" để thử nghiệm!</span>
+          </div>
+        `;
+        startBtn.disabled = true;
+        return;
+      }
+
+      startBtn.disabled = false;
+      let html = '';
+      hostPlayers.forEach((p) => {
+        html += `
+          <div class="bg-zinc-900/90 border border-amber-600/60 rounded-xl p-2.5 flex items-center gap-2.5 shadow animate-fade-in">
+            <div class="w-10 h-10 rounded-lg bg-black/60 border border-zinc-700 flex items-center justify-center text-2xl flex-shrink-0">
+              ${p.avatar}
+            </div>
+            <div class="overflow-hidden">
+              <div class="text-xs font-bold text-zinc-200 truncate font-heading">${p.name}</div>
+              <span class="text-[10px] font-mono ${p.isBot ? 'text-amber-400' : 'text-emerald-400'}">
+                ${p.isBot ? '<i class="fa-solid fa-robot mr-1"></i>Bot máy' : '<i class="fa-solid fa-signal mr-1"></i>Trực tuyến'}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+      listEl.innerHTML = html;
+    }
+
+    function hostStartMatch() {
+      if (hostPlayers.size === 0) {
+        alert('Cần ít nhất 1 người chơi (hoặc bấm "+ Thêm Thợ Máy") để bắt đầu!');
+        return;
+      }
+
+      getAudioContext();
+      playSound('whistle');
+
+      hostMatchDuration = parseInt(document.getElementById('select-duration').value) || 30;
+      hostTimeLeft = hostMatchDuration;
+
+      // Broadcast START to all connected players (both WebRTC & local channel)
+      const startPayload = {
+        type: 'MATCH_START',
+        duration: hostMatchDuration
+      };
+      hostConnections.forEach((conn) => {
+        try { conn.send(startPayload); } catch(e) {}
+      });
+      if (window.localHostBroadcast) {
+        try { window.localHostBroadcast.postMessage(startPayload); } catch(e) {}
+      }
+
+      // Reset all player meters
+      hostPlayers.forEach(p => {
+        p.meters = 0.0;
+        p.pressure = 20.0;
+        p.isExploded = false;
+        p.explosions = 0;
+      });
+
+      switchScreen('screen-host-race');
+      renderLiveTracks();
+
+      // Countdown loop on Host
+      if (hostRaceTimer) clearInterval(hostRaceTimer);
+      document.getElementById('host-race-timer').innerText = hostTimeLeft + 's';
+
+      hostRaceTimer = setInterval(() => {
+        hostTimeLeft--;
+        document.getElementById('host-race-timer').innerText = hostTimeLeft + 's';
+
+        // Simulate Bot players actions every tick
+        simulateBotActions();
+
+        // Broadcast current tick & rankings to players so their rank updates
+        broadcastRankingsToPlayers();
+        renderLiveTracks();
+
+        if (hostTimeLeft <= 0) {
+          clearInterval(hostRaceTimer);
+          hostFinishMatch();
+        }
+      }, 1000);
+    }
+
+    // Simulate AI Bots during race
+    function simulateBotActions() {
+      hostPlayers.forEach(p => {
+        if (!p.isBot) return;
+
+        if (p.isExploded) {
+          // In penalty
+          return;
+        }
+
+        // Bots simulate coal and steam valve logic
+        p.pressure += 12.0; // pressure builds naturally
+        if (p.pressure > 85) {
+          // Bot explosion
+          p.isExploded = true;
+          p.explosions++;
+          p.meters = Math.max(0, p.meters - 3.0);
+          setTimeout(() => {
+            p.isExploded = false;
+            p.pressure = 45;
+          }, 2500);
+        } else if (p.pressure >= 50 && p.pressure <= 75) {
+          // Bot weaves fabric!
+          p.pressure -= 10;
+          p.meters += (1.0 * (p.botSkill || 1));
+          p.meters = parseFloat(p.meters.toFixed(1));
+        } else if (p.pressure < 45) {
+          // Bot shovels coal
+          p.pressure += 15;
+        }
+      });
+    }
+
+    function broadcastRankingsToPlayers() {
+      // Sort players to determine ranks
+      const sorted = Array.from(hostPlayers.values()).sort((a, b) => b.meters - a.meters);
+      
+      sorted.forEach((p, index) => {
+        const rank = index + 1;
+        const tickPayload = {
+          type: 'TICK_UPDATE',
+          playerId: p.id,
+          timeLeft: hostTimeLeft,
+          rank: rank,
+          totalPlayers: sorted.length
+        };
+        const conn = hostConnections.get(p.id);
+        if (conn) {
+          try { conn.send(tickPayload); } catch(e) {}
+        }
+        if (window.localHostBroadcast) {
+          try { window.localHostBroadcast.postMessage(tickPayload); } catch(e) {}
+        }
+      });
+    }
+
+    function renderLiveTracks() {
+      const container = document.getElementById('host-tracks-container');
+      if (!container) return;
+
+      const sorted = Array.from(hostPlayers.values()).sort((a, b) => b.meters - a.meters);
+      const maxMeters = Math.max(30, ...sorted.map(p => p.meters));
+
+      let html = '';
+      sorted.forEach((p, idx) => {
+        const rank = idx + 1;
+        const progressPct = Math.min(100, Math.max(4, (p.meters / maxMeters) * 100));
+
+        let rankBadgeClass = 'bg-zinc-800 text-zinc-300';
+        if (rank === 1) rankBadgeClass = 'bg-yellow-500 text-black font-black shadow-[0_0_10px_rgba(234,179,8,0.6)]';
+        else if (rank === 2) rankBadgeClass = 'bg-slate-300 text-black font-black';
+        else if (rank === 3) rankBadgeClass = 'bg-amber-700 text-white font-bold';
+
+        html += `
+          <div class="bg-black/60 border ${p.isExploded ? 'border-red-500/80 bg-red-950/20' : 'border-zinc-700'} rounded-xl p-3 relative transition-all duration-200">
+            <!-- Row Header -->
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded flex items-center justify-center text-xs font-mono font-bold ${rankBadgeClass}">
+                  #${rank}
+                </span>
+                <span class="text-xl">${p.avatar}</span>
+                <span class="text-sm font-bold font-heading text-zinc-100">${p.name}</span>
+                ${p.isExploded ? '<span class="text-[11px] px-2 py-0.5 rounded bg-red-600 text-white font-mono animate-pulse font-bold">💥 NỔ NỒI HƠI!</span>' : ''}
+              </div>
+
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-mono text-zinc-400">Áp suất: <b class="${p.pressure >= 50 && p.pressure <= 75 ? 'text-amber-400' : 'text-zinc-300'}">${p.pressure.toFixed(0)}%</b></span>
+                <span class="text-lg md:text-xl font-black font-mono text-emerald-400">${p.meters.toFixed(1)} <span class="text-xs text-emerald-600">m</span></span>
+              </div>
+            </div>
+
+            <!-- Visual Steampunk Loom Track (Fabric Progress Bar) -->
+            <div class="w-full bg-zinc-900 h-6 rounded-lg border border-zinc-700 p-0.5 relative overflow-hidden flex items-center">
+              <div 
+                class="h-full rounded transition-all duration-300 relative flex items-center justify-end pr-1.5 shadow"
+                style="width: ${progressPct}%; background: linear-gradient(90deg, #1e3a8a 0%, #0d9488 50%, #10b981 100%);"
+              >
+                <!-- Rotating Gear on the head of the weaving shuttle -->
+                <i class="fa-solid fa-gear ${p.isExploded ? '' : 'gear-fast'} text-white text-xs drop-shadow"></i>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function hostFinishMatch() {
+      playSound('whistle');
+      setTimeout(() => playSound('victory'), 500);
+
+      const sorted = Array.from(hostPlayers.values()).sort((a, b) => b.meters - a.meters);
+
+      // Trigger Confetti Celebration!
+      if (window.confetti) {
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.6 }
+        });
+      }
+
+      // Broadcast MATCH_END to all players
+      const endPayload = {
+        type: 'MATCH_END',
+        finalRankings: sorted.map(p => ({ id: p.id, name: p.name, meters: p.meters, explosions: p.explosions }))
+      };
+      hostConnections.forEach((conn) => {
+        try { conn.send(endPayload); } catch(e) {}
+      });
+      if (window.localHostBroadcast) {
+        try { window.localHostBroadcast.postMessage(endPayload); } catch(e) {}
+      }
+
+      switchScreen('screen-host-podium');
+      renderHostPodium(sorted);
+    }
+
+    function renderHostPodium(sorted) {
+      const podiumGrid = document.getElementById('podium-top3-grid');
+      const leaderboardBody = document.getElementById('podium-full-leaderboard');
+
+      const top1 = sorted[0];
+      const top2 = sorted[1];
+      const top3 = sorted[2];
+
+      let podiumHtml = '';
+
+      // Podium: 2nd place (Silver, Left)
+      if (top2) {
+        podiumHtml += `
+          <div class="flex-1 flex flex-col items-center max-w-[200px] animate-fade-in">
+            <span class="text-3xl mb-1">${top2.avatar}</span>
+            <span class="text-xs font-bold text-zinc-300 font-heading truncate max-w-[120px] mb-1">${top2.name}</span>
+            <span class="text-sm font-black font-mono text-emerald-400 mb-2">${top2.meters.toFixed(1)}m</span>
+            <div class="w-full bg-gradient-to-t from-zinc-800 to-zinc-600 border-t-4 border-slate-300 rounded-t-lg h-32 flex flex-col items-center justify-center shadow-lg">
+              <span class="text-2xl font-black font-heading text-slate-200">#2</span>
+              <span class="text-[10px] font-mono text-slate-300 uppercase">Á QUÂN</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Podium: 1st place (Gold, Center, Tallest)
+      if (top1) {
+        podiumHtml += `
+          <div class="flex-1 flex flex-col items-center max-w-[220px] animate-fade-in">
+            <div class="relative">
+              <i class="fa-solid fa-crown text-yellow-400 text-2xl absolute -top-5 left-1/2 -translate-x-1/2 animate-bounce"></i>
+              <span class="text-4xl mb-1 block">${top1.avatar}</span>
+            </div>
+            <span class="text-sm font-black text-amber-300 font-heading truncate max-w-[140px] mb-1">${top1.name}</span>
+            <span class="text-lg font-black font-mono text-emerald-300 mb-2">${top1.meters.toFixed(1)}m</span>
+            <div class="w-full bg-gradient-to-t from-amber-900 to-amber-600 border-t-4 border-yellow-300 rounded-t-lg h-44 flex flex-col items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.5)]">
+              <span class="text-3xl font-black font-heading text-yellow-200">#1</span>
+              <span class="text-xs font-mono font-bold text-yellow-100 uppercase">QUÁN QUÂN WATT</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Podium: 3rd place (Bronze, Right)
+      if (top3) {
+        podiumHtml += `
+          <div class="flex-1 flex flex-col items-center max-w-[200px] animate-fade-in">
+            <span class="text-3xl mb-1">${top3.avatar}</span>
+            <span class="text-xs font-bold text-zinc-300 font-heading truncate max-w-[120px] mb-1">${top3.name}</span>
+            <span class="text-sm font-black font-mono text-emerald-400 mb-2">${top3.meters.toFixed(1)}m</span>
+            <div class="w-full bg-gradient-to-t from-amber-950 to-amber-800 border-t-4 border-amber-600 rounded-t-lg h-24 flex flex-col items-center justify-center shadow-md">
+              <span class="text-2xl font-black font-heading text-amber-300">#3</span>
+              <span class="text-[10px] font-mono text-amber-200 uppercase">HẠNG BA</span>
+            </div>
+          </div>
+        `;
+      }
+
+      podiumGrid.innerHTML = podiumHtml;
+
+      // Full Leaderboard Table
+      let tableHtml = '';
+      sorted.forEach((p, idx) => {
+        const speed = (p.meters / hostMatchDuration).toFixed(2);
+        tableHtml += `
+          <tr class="border-b border-zinc-800 hover:bg-zinc-800/40">
+            <td class="py-2.5 px-3 font-bold ${idx < 3 ? 'text-amber-400' : 'text-zinc-400'}">#${idx + 1}</td>
+            <td class="py-2.5 px-3 flex items-center gap-2">
+              <span>${p.avatar}</span>
+              <span class="text-zinc-200">${p.name}</span>
+            </td>
+            <td class="py-2.5 px-3 text-right font-bold text-emerald-400">${p.meters.toFixed(1)} m</td>
+            <td class="py-2.5 px-3 text-center ${p.explosions > 0 ? 'text-red-400' : 'text-zinc-500'}">${p.explosions}</td>
+            <td class="py-2.5 px-3 text-right text-zinc-400">${speed} m/s</td>
+          </tr>
+        `;
+      });
+      leaderboardBody.innerHTML = tableHtml;
+    }
+
+    function hostRematchSameRoom() {
+      switchScreen('screen-host-lobby');
+      renderHostLobbyPlayers();
+    }
+
+
+    // =========================================================================
+    // PLAYER CONTROLLER LOGIC (MOBILE / CLIENT)
+    // =========================================================================
+
+    function initPlayerFlow() {
+      switchScreen('screen-player-login');
+      getAudioContext();
+
+      // Check URL query parameters for auto-fill PIN
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlPin = urlParams.get('pin');
+      if (urlPin) {
+        document.getElementById('input-player-pin').value = urlPin;
+        document.getElementById('player-pin-hint').innerText = '(Đã tự điền từ link QR)';
+      }
+    }
+
+    function selectAvatar(icon) {
+      myPlayerAvatar = icon;
+      document.querySelectorAll('#avatar-selector .avatar-opt').forEach(btn => {
+        if (btn.innerText.includes(icon)) {
+          btn.className = 'avatar-opt p-2 rounded-lg bg-zinc-800 border-2 border-amber-500 text-2xl flex items-center justify-center';
+        } else {
+          btn.className = 'avatar-opt p-2 rounded-lg bg-zinc-800 border border-zinc-700 text-2xl flex items-center justify-center';
+        }
+      });
+    }
+
+    function handlePlayerIncomingData(data) {
+      if (!data) return;
+
+      if (data.type === 'JOINED_OK') {
+        if (data.playerId && data.playerId !== myPlayerId) return;
+        document.getElementById('player-wait-name').innerText = myPlayerName;
+        document.getElementById('player-wait-avatar').innerText = myPlayerAvatar;
+        switchScreen('screen-player-waiting');
+      } 
+      else if (data.type === 'MATCH_START') {
+        startPlayerMatch(data.duration || 30);
+      }
+      else if (data.type === 'TICK_UPDATE') {
+        if (data.playerId && data.playerId !== myPlayerId) return;
+        document.getElementById('hud-player-rank').innerText = 'Hạng: #' + data.rank + ' / ' + data.totalPlayers;
+        document.getElementById('hud-player-timer').innerText = data.timeLeft;
+      }
+      else if (data.type === 'MATCH_END') {
+        finishPlayerMatch(data.finalRankings);
+      }
+    }
+
+    function playerConnectToHost() {
+      const pinInput = document.getElementById('input-player-pin').value.trim();
+      const nameInput = document.getElementById('input-player-name').value.trim();
+      const statusEl = document.getElementById('player-login-status');
+
+      if (!pinInput || pinInput.length < 4) {
+        statusEl.innerText = 'Vui lòng nhập mã PIN 4 chữ số hợp lệ!';
+        return;
+      }
+
+      myPlayerName = nameInput || ('Thợ Dệt ' + Math.floor(Math.random() * 899 + 100));
+
+      statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Đang tìm phòng máy chủ ' + pinInput + '...';
+
+      // 1. Local BroadcastChannel for instant same-browser multi-tab testing
+      if (window.BroadcastChannel) {
+        if (window.localPlayerBroadcast) window.localPlayerBroadcast.close();
+        window.localPlayerBroadcast = new BroadcastChannel('watt10_room_' + pinInput);
+        window.localPlayerBroadcast.onmessage = (event) => {
+          handlePlayerIncomingData(event.data);
+        };
+        // Announce JOIN locally
+        window.localPlayerBroadcast.postMessage({
+          type: 'JOIN',
+          playerId: myPlayerId,
+          name: myPlayerName,
+          avatar: myPlayerAvatar
+        });
+      }
+
+      // 2. Initialize PeerJS for WebRTC across different devices / mobile phones
+      const playerPeerId = 'watt10-p-' + pinInput + '-' + Math.floor(Math.random() * 899999 + 100000);
+      const targetHostPeerId = 'watt10-' + pinInput;
+
+      if (playerPeer) playerPeer.destroy();
+
+      playerPeer = new Peer(playerPeerId, { debug: 1 });
+
+      playerPeer.on('open', () => {
+        statusEl.innerText = 'Đang thiết lập kết nối WebRTC...';
+        playerConn = playerPeer.connect(targetHostPeerId, { reliable: true });
+
+        playerConn.on('open', () => {
+          // Send JOIN packet over WebRTC
+          playerConn.send({
+            type: 'JOIN',
+            playerId: myPlayerId,
+            name: myPlayerName,
+            avatar: myPlayerAvatar
+          });
+        });
+
+        playerConn.on('data', (data) => {
+          handlePlayerIncomingData(data);
+        });
+
+        playerConn.on('error', (err) => {
+          console.warn('Peer connection error:', err);
+        });
+      });
+
+      playerPeer.on('error', (err) => {
+        console.warn('Player Peer Error:', err);
+        if (!window.localPlayerBroadcast) {
+          statusEl.innerText = 'Không tìm thấy phòng PIN ' + pinInput + '. Hãy kiểm tra lại mã trên màn hình Host!';
+        }
+      });
+    }
+
+    // =========================================================================
+    // IN-GAME ACTIVE ENGINE: BOILER PHYSICS & TOUCH CONTROLS
+    // =========================================================================
+
+    function startPlayerMatch(duration) {
+      playSound('whistle');
+
+      playerTimeLeft = duration;
+      playerMeters = 0.0;
+      playerPressure = 30.0;
+      playerExplosions = 0;
+      isBoilerExploded = false;
+
+      // Update HUD elements
+      document.getElementById('hud-player-name').innerText = myPlayerName;
+      document.getElementById('hud-player-avatar').innerText = myPlayerAvatar;
+      document.getElementById('hud-player-meters').innerText = '0.0';
+      document.getElementById('hud-player-timer').innerText = playerTimeLeft;
+
+      switchScreen('screen-player-game');
+      updateGaugeUI();
+
+      // Clear any prior intervals
+      if (boilerBoilingInterval) clearInterval(boilerBoilingInterval);
+      if (playerGameTimerInterval) clearInterval(playerGameTimerInterval);
+
+      // 1. BOILER BOILING PHYSICS:
+      // "Nhiệt độ/Áp suất nồi hơi tự tăng liên tục (+1.5% mỗi 120ms) do nước sôi"
+      boilerBoilingInterval = setInterval(() => {
+        if (isBoilerExploded) return;
+
+        playerPressure += 1.5; // Natural continuous boiling pressure build-up
+        if (playerPressure > 100) playerPressure = 100;
+
+        // CHECK OVERHEAT EXPLOSION:
+        // "Khi kim vượt quá 85%: NỔ NỒI HƠI! Phạt ngưng hoạt động 2.5s và trừ 3m vải."
+        if (playerPressure >= 85.0) {
+          triggerBoilerExplosion();
+        }
+
+        updateGaugeUI();
+      }, 120);
+
+      // 2. Solo Timer countdown if not using WebRTC sync
+      if (isSoloPractice) {
+        playerGameTimerInterval = setInterval(() => {
+          playerTimeLeft--;
+          document.getElementById('hud-player-timer').innerText = playerTimeLeft;
+          if (playerTimeLeft <= 0) {
+            clearInterval(playerGameTimerInterval);
+            finishPlayerMatch([]);
+          }
+        }, 1000);
+      }
+    }
+
+    function updateGaugeUI() {
+      // Map pressure (0% to 100%) to Needle Angle (-120deg to +120deg)
+      // angle = -120 + (pressure / 100) * 240
+      const angle = -120 + (playerPressure / 100) * 240;
+      const needle = document.getElementById('svg-needle-group');
+      if (needle) {
+        needle.setAttribute('transform', `rotate(${angle} 100 100)`);
+      }
+
+      const numEl = document.getElementById('gauge-pressure-num');
+      if (numEl) numEl.innerText = playerPressure.toFixed(1) + '%';
+
+      const zoneBadge = document.getElementById('gauge-zone-badge');
+      const warningBanner = document.getElementById('gauge-warning-banner');
+      const card = document.getElementById('gauge-container-card');
+
+      if (!zoneBadge) return;
+
+      // Color zone classification
+      if (playerPressure >= 85) {
+        zoneBadge.className = 'px-3 py-1 rounded-full text-xs font-bold border border-red-500 bg-red-950 text-red-300';
+        zoneBadge.innerText = '💥 NGUY HIỂM: SẮP NỔ!';
+        warningBanner.classList.remove('hidden');
+        card.classList.add('shake-animation');
+      } 
+      else if (playerPressure >= 50 && playerPressure <= 75) {
+        zoneBadge.className = 'px-3 py-1 rounded-full text-xs font-bold border border-yellow-400 bg-yellow-950/80 text-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.5)]';
+        zoneBadge.innerText = '⚡ VÙNG VÀNG: DỆT TỐI ƯU (+1m)!';
+        warningBanner.classList.add('hidden');
+        card.classList.remove('shake-animation');
+      } 
+      else if (playerPressure > 75) {
+        zoneBadge.className = 'px-3 py-1 rounded-full text-xs font-bold border border-orange-500 bg-orange-950 text-orange-300';
+        zoneBadge.innerText = '⚠️ ÁP SUẤT CAO: CẦN XẢ!';
+        warningBanner.classList.add('hidden');
+        card.classList.remove('shake-animation');
+      } 
+      else {
+        zoneBadge.className = 'px-3 py-1 rounded-full text-xs font-bold border border-blue-500 bg-blue-950 text-blue-300';
+        zoneBadge.innerText = '❄️ ÁP SUẤT THẤP (<40%): CẦN BƠM THAN!';
+        warningBanner.classList.add('hidden');
+        card.classList.remove('shake-animation');
+      }
+    }
+
+    // =========================================================================
+    // PLAYER ACTIONS
+    // =========================================================================
+
+    // ACTION 1: [ XẢ VAN DỆT VẢI (+1m) ]
+    function handleValveRelease() {
+      if (isBoilerExploded) return;
+      getAudioContext();
+
+      // Mobile Haptic Vibration feedback
+      if (navigator.vibrate) navigator.vibrate(30);
+
+      const toast = document.getElementById('player-action-toast');
+
+      // Golden Safe Zone Check (50% - 75%)
+      if (playerPressure >= 50.0 && playerPressure <= 75.0) {
+        // SUCCESS: Release -10% pressure & Weave +1.0m fabric!
+        playerPressure = Math.max(0, playerPressure - 10.0);
+        playerMeters += 1.0;
+        playerMeters = parseFloat(playerMeters.toFixed(1));
+
+        playSound('valve');
+        spawnSteamPuffFX();
+
+        document.getElementById('hud-player-meters').innerText = playerMeters.toFixed(1);
+        toast.innerHTML = '<span class="text-emerald-400"><i class="fa-solid fa-sparkles mr-1"></i>+1.0m VẢI DỆT THÀNH CÔNG! (Xả -10% áp)</span>';
+
+        // Notify Host of live progress
+        sendActionUpdateToHost();
+      } 
+      else if (playerPressure < 40.0) {
+        // "Khi kim quá thấp (<40%): Bấm xả van bị hẫng, không tạo ra vải."
+        playSound('coal');
+        toast.innerHTML = '<span class="text-blue-400">Hẫng van! Áp suất quá yếu (&lt;40%), hãy Bơm Than!</span>';
+      } 
+      else {
+        // Between 40% and 50% or 75% and 85%: release steam without optimal fabric
+        playerPressure = Math.max(0, playerPressure - 8.0);
+        playSound('valve');
+        toast.innerHTML = '<span class="text-amber-300">Xả áp hơi nước! (Chưa trúng Vùng Vàng 50%-75%)</span>';
+        sendActionUpdateToHost();
+      }
+
+      updateGaugeUI();
+    }
+
+    // ACTION 2: [ BƠM THAN TĂNG ÁP (+15%) ]
+    function handleCoalShovel() {
+      if (isBoilerExploded) return;
+      getAudioContext();
+
+      if (navigator.vibrate) navigator.vibrate(20);
+
+      playSound('coal');
+      spawnEmberSparksFX();
+
+      // Manual coal boost: +15% pressure immediately
+      playerPressure = Math.min(100, playerPressure + 15.0);
+
+      const toast = document.getElementById('player-action-toast');
+      toast.innerHTML = '<span class="text-amber-400"><i class="fa-solid fa-fire mr-1"></i>BƠM THÊM THAN! (+15% Áp suất)</span>';
+
+      if (playerPressure >= 85.0) {
+        triggerBoilerExplosion();
+      }
+
+      sendActionUpdateToHost();
+      updateGaugeUI();
+    }
+
+    // BOILER EXPLOSION PENALTY:
+    function triggerBoilerExplosion() {
+      if (isBoilerExploded) return;
+      isBoilerExploded = true;
+      playerExplosions++;
+
+      // Penalty: deduct 3.0m fabric
+      playerMeters = Math.max(0, parseFloat((playerMeters - 3.0).toFixed(1)));
+      document.getElementById('hud-player-meters').innerText = playerMeters.toFixed(1);
+
+      playSound('explosion');
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+
+      // Show Frozen Overlay for 2.5s
+      const overlay = document.getElementById('gauge-frozen-overlay');
+      const countdownEl = document.getElementById('frozen-countdown');
+      overlay.classList.remove('hidden');
+
+      let penaltyTime = 2.5;
+      countdownEl.innerText = penaltyTime.toFixed(1) + 's';
+
+      const penaltyInterval = setInterval(() => {
+        penaltyTime -= 0.1;
+        if (penaltyTime <= 0) {
+          clearInterval(penaltyInterval);
+          // Recover from explosion
+          isBoilerExploded = false;
+          playerPressure = 45.0; // Reset to safe middle pressure
+          overlay.classList.add('hidden');
+          updateGaugeUI();
+          sendActionUpdateToHost();
+        } else {
+          countdownEl.innerText = penaltyTime.toFixed(1) + 's';
+        }
+      }, 100);
+
+      sendActionUpdateToHost();
+    }
+
+    function sendActionUpdateToHost() {
+      const payload = {
+        type: 'ACTION_UPDATE',
+        playerId: myPlayerId,
+        meters: playerMeters,
+        pressure: playerPressure,
+        isExploded: isBoilerExploded,
+        explosions: playerExplosions
+      };
+      if (playerConn && playerConn.open) {
+        try { playerConn.send(payload); } catch(e) {}
+      }
+      if (window.localPlayerBroadcast) {
+        try { window.localPlayerBroadcast.postMessage(payload); } catch(e) {}
+      }
+    }
+
+    // Visual Particle Effects
+    function spawnSteamPuffFX() {
+      const container = document.getElementById('valve-fx-container');
+      if (!container) return;
+      for (let i = 0; i < 4; i++) {
+        const p = document.createElement('div');
+        p.className = 'steam-particle';
+        const size = Math.random() * 20 + 20;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = (Math.random() * 60 + 20) + '%';
+        p.style.top = (Math.random() * 30 + 40) + '%';
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 800);
+      }
+    }
+
+    function spawnEmberSparksFX() {
+      const container = document.getElementById('coal-fx-container');
+      if (!container) return;
+      for (let i = 0; i < 6; i++) {
+        const p = document.createElement('div');
+        p.className = 'ember-particle';
+        const dx = (Math.random() * 80 - 40) + 'px';
+        const dy = -(Math.random() * 60 + 20) + 'px';
+        p.style.setProperty('--dx', dx);
+        p.style.setProperty('--dy', dy);
+        p.style.left = '50%';
+        p.style.top = '50%';
+        container.appendChild(p);
+        setTimeout(() => p.remove(), 600);
+      }
+    }
+
+    function finishPlayerMatch(finalRankings) {
+      if (boilerBoilingInterval) clearInterval(boilerBoilingInterval);
+      if (playerGameTimerInterval) clearInterval(playerGameTimerInterval);
+
+      switchScreen('screen-player-end');
+
+      document.getElementById('end-player-meters').innerText = playerMeters.toFixed(1) + ' m';
+      document.getElementById('end-player-explosions').innerText = playerExplosions + ' lần';
+
+      // Find my rank if passed
+      let myRank = '--';
+      if (Array.isArray(finalRankings) && finalRankings.length > 0) {
+        const foundIndex = finalRankings.findIndex(p => p.id === myPlayerId);
+        if (foundIndex !== -1) myRank = '#' + (foundIndex + 1);
+      }
+      document.getElementById('end-player-rank').innerText = myRank;
+    }
+
+    // =========================================================================
+    // SOLO PRACTICE MODE
+    // =========================================================================
+    function startSoloPractice() {
+      isSoloPractice = true;
+      myPlayerName = 'Thợ Dệt Tập Luyện';
+      myPlayerAvatar = '⚙️';
+      startPlayerMatch(30);
+    }
+
+    // =========================================================================
+    // KEYBOARD CONTROLS FOR LAPTOP / DESKTOP TESTING
+    // Spacebar / 'V' / 'J' => Xả Van Dệt Vải
+    // 'C' / 'K' / ArrowUp => Bơm Than Tăng Áp
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+      const gameScreen = document.getElementById('screen-player-game');
+      if (gameScreen && !gameScreen.classList.contains('hidden')) {
+        if (e.code === 'Space' || e.key === 'v' || e.key === 'V' || e.key === 'j' || e.key === 'J') {
+          e.preventDefault();
+          handleValveRelease();
+        } else if (e.key === 'c' || e.key === 'C' || e.key === 'k' || e.key === 'K' || e.code === 'ArrowUp') {
+          e.preventDefault();
+          handleCoalShovel();
+        }
+      }
+    });
+
+    // --- INITIALIZATION ON WINDOW LOAD ---
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check if URL has params (e.g. ?pin=1234&role=player)
+      const urlParams = new URLSearchParams(window.location.search);
+      const role = urlParams.get('role');
+      const pin = urlParams.get('pin');
+
+      if (role === 'player' || pin) {
+        initPlayerFlow();
+      } else {
+        switchScreen('screen-role-select');
+      }
+    });
+  </script>
+</body>
+</html>
