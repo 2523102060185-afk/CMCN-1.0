@@ -1739,7 +1739,29 @@
 
       if (playerPeer) playerPeer.destroy();
 
-      playerPeer = new Peer(playerPeerId, { debug: 1 });
+              playerPeer = new Peer(playerPeerId, { 
+            debug: 1,
+            config: {
+                'iceServers': [
+                    { urls: 'stun:://google.com' },
+                    { urls: 'stun:://google.com' },
+                    { urls: 'stun:://xirsys.com' },
+                    {
+                        username: "oiz4JvcWi_KFKoP-pyaIzLhgki-B5gzafxpG_o5F8QX103Bt9iceMuwoJ5c3XuNnAAAAAGrYxVRpdnlu",
+                        credential: "adabcc08-cd57-11f1-9421-2e51e5723d18",
+                        urls: [
+                            "turn:://xirsys.com:80?transport=udp",
+                            "turn:://xirsys.com:3478?transport=udp",
+                            "turn:://xirsys.com:80?transport=tcp",
+                            "turn:://xirsys.com:3478?transport=tcp",
+                            "turns:://xirsys.com:443?transport=tcp",
+                            "turns:://xirsys.com:5349?transport=tcp"
+                        ]
+                    }
+                ],
+                sdpSemantics: 'unified-plan'
+            }
+        });
 
       playerPeer.on('open', () => {
         statusEl.innerText = 'Đang thiết lập kết nối WebRTC...';
