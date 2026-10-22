@@ -1739,18 +1739,20 @@
 
       if (playerPeer) playerPeer.destroy();
 
-                      playerPeer = new Peer(playerPeerId, { 
-            debug: 1,
+        playerPeer = new Peer(playerPeerId, { 
+            host: 'openrelay.metered.ca',
+            port: 443,
+            secure: true,
+            path: '/peerjs',
+            debug: 3,
             config: {
                 'iceServers': [
-                    { url: 'stun:://google.com', urls: 'stun:://google.com' },
-                    { url: 'stun:://google.com', urls: 'stun:://google.com' },
-                    { url: 'stun:://google.com', urls: 'stun:://google.com' },
-                    { url: 'stun:stun.metered.ca', urls: 'stun:stun.metered.ca' },
+                    { urls: 'stun:://google.com' },
+                    { urls: 'stun:://google.com' },
+                    { urls: 'stun:openrelay.metered.ca' },
                     {
                         username: "metered",
                         credential: "metered",
-                        url: "turn:openrelay.metered.ca:443?transport=tcp",
                         urls: [
                             "turn:openrelay.metered.ca:80",
                             "turn:openrelay.metered.ca:443",
@@ -1763,12 +1765,9 @@
             }
         });
 
-      playerPeer.on('open', () => {
-        statusEl.innerText = 'Đang thiết lập kết nối WebRTC...';
-                conn = playerPeer.connect(targetHostPeerId, { reliable: true });
+        conn = playerPeer.connect(targetHostPeerId, { reliable: true });
 
         conn.on('open', () => {
-            // Gửi gói tin JOIN lên Host
             conn.send({
                 type: 'JOIN',
                 playerId: myPlayerId,
@@ -1782,15 +1781,16 @@
         });
 
         conn.on('error', (err) => {
-            console.warn('Peer connection error:', err);
+            console.warn('Kết nối lỗi:', err);
         });
         
         playerPeer.on('error', (err) => {
-            console.warn('Player Peer Error:', err);
+            console.warn('Lỗi Peer:', err);
             if (window.localPlayerBroadcast) {
                 statusEl.innerText = 'Không tìm thấy phòng PIN ';
             }
         });
+
 
     // =========================================================================
     // IN-GAME ACTIVE ENGINE: BOILER PHYSICS & TOUCH CONTROLS
