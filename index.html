@@ -1765,34 +1765,32 @@
 
       playerPeer.on('open', () => {
         statusEl.innerText = 'Đang thiết lập kết nối WebRTC...';
-        playerConn = playerPeer.connect(targetHostPeerId, { reliable: true });
+                conn = playerPeer.connect(targetHostPeerId, { reliable: true });
 
-        playerConn.on('open', () => {
-          // Send JOIN packet over WebRTC
-          playerConn.send({
-            type: 'JOIN',
-            playerId: myPlayerId,
-            name: myPlayerName,
-            avatar: myPlayerAvatar
-          });
+        conn.on('open', () => {
+            // Gửi gói tin JOIN lên Host
+            conn.send({
+                type: 'JOIN',
+                playerId: myPlayerId,
+                name: myPlayerName,
+                avatar: myPlayerAvatar
+            });
         });
 
-        playerConn.on('data', (data) => {
-          handlePlayerIncomingData(data);
+        conn.on('data', (data) => {
+            handlePlayerIncomingData(data);
         });
 
-        playerConn.on('error', (err) => {
-          console.warn('Peer connection error:', err);
+        conn.on('error', (err) => {
+            console.warn('Peer connection error:', err);
         });
-      });
-
-      playerPeer.on('error', (err) => {
-        console.warn('Player Peer Error:', err);
-        if (!window.localPlayerBroadcast) {
-          statusEl.innerText = 'Không tìm thấy phòng PIN ' + pinInput + '. Hãy kiểm tra lại mã trên màn hình Host!';
-        }
-      });
-    }
+        
+        playerPeer.on('error', (err) => {
+            console.warn('Player Peer Error:', err);
+            if (window.localPlayerBroadcast) {
+                statusEl.innerText = 'Không tìm thấy phòng PIN ';
+            }
+        });
 
     // =========================================================================
     // IN-GAME ACTIVE ENGINE: BOILER PHYSICS & TOUCH CONTROLS
